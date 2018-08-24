@@ -6,7 +6,7 @@ import zipfile
 
 
 
-# install_addon.py Version 20180802
+# install_addon.py Version 20180803
 #
 # This script covers majority of the add-on packages I downloaded from the web.
 # It assumes that the user data is under 'User' or 'user' sub-directory somewhere in the .zip file.
@@ -37,6 +37,13 @@ import zipfile
 # I can do the same if I link a set of my own class libraries, but then I cannot say easily "please feel free to customize and bundle."
 #
 # ... I think I soon need to write it in C++ anyway for iOS and Android.  But, for those purposes I'll use my own class libraries.
+
+
+
+
+def DefaultFileList():
+	return [
+	]
 
 
 
@@ -202,7 +209,7 @@ def InstallAddOn(zipFName,instDir):
 
 
 
-	FixCapitalization(installedAirList,installedGndList,installedScnList,dataFile)
+	FixCapitalization(instDir,installedAirList,installedGndList,installedScnList,dataFile)
 
 
 
@@ -224,6 +231,51 @@ def InstallMultiAddOn(zipDirName,instDir):
 ################################################################################
 
 
+def TryCorrectFileName(fName,lowerToActual):
+	actual=lowerToActual.get(fName.lower().replace('"',''))
+	if actual==None:
+		if fName.startswith("aircraft/") or fName.startswith("ground/") or fName.startswith("scenery/"):
+			print("File "+fName+" is probably a reference to a default file.")
+		else:
+			print("Warning: File "+fName+" does not exist.")
+		return (False,fName)
+
+	if None!=actual and fName!=actual:
+		print("Correcting Capitalization: "+fName+" to "+actual)
+		return (True,actual)
+	else:
+		return (False,fName)
+
+
+
+def FixCapitalizationPerDatFile(datFName,lowerToActual,keywordDict):
+	try:
+		fp=open(datFName,"r")
+	except:
+		print("File "+datFName+" does not exist.")
+		return
+
+	updated=False
+	fileContent=[]
+	for s in fp:
+		argv=s.split()
+		if 0<len(argv) and None!=keywordDict.get(argv[0].upper()):
+			(tf,newFName)=TryCorrectFileName(argv[1],lowerToActual)
+			if True==tf:
+				updated=True;
+				s=s.replace(argv[1],newFName)
+		fileContent.append(s)
+
+	fp.close()
+
+	if True==updated:
+		print("Writing "+datFName)
+		fp=open(datFName,"w")
+		for s in fileContent:
+			fp.write(s+"\n")
+		fp.close()
+
+
 
 def FixCapitalizationPerListFile(listFName,lowerToActual,skipFirstArg):
 	txt=[]
@@ -238,30 +290,20 @@ def FixCapitalizationPerListFile(listFName,lowerToActual,skipFirstArg):
 	for s in txt:
 		argv=s.split()
 		first=True
-		newStr=""
 		for arg in argv:
 			if True==first and True==skipFirstArg:
-				newStr=newStr+arg
 				first=False
 				continue
 
-			if True!=first:
-				newStr=newStr+' '
-
-			actual=lowerToActual.get(arg.lower().replace('"',''))
-			if actual==None:
-				print("Warning: File "+arg+" does not exist.")
-
-			if None!=actual and arg!=actual:
+			(tf,actual)=TryCorrectFileName(arg,lowerToActual)
+			if True==tf:
 				updated=True
 				print("Correcting Capitalization: "+arg+" to "+actual)
-				newStr=newStr+actual
-			else:
-				newStr=newStr+arg
+				s=s.replace(arg,actual)
 
 			first=False
 
-		newTxt.append(newStr)
+		newTxt.append(s)
 
 	if True==updated:
 		print("Updating: "+listFName)
@@ -273,17 +315,34 @@ def FixCapitalizationPerListFile(listFName,lowerToActual,skipFirstArg):
 
 
 
-def FixCapitalization(airListFName,gndListFName,scnListFName,dataFile):
+def FixCapitalization(instDir,airListFName,gndListFName,scnListFName,dataFile):
 	lowerToActual=dict()
 	for f in dataFile:
 		lowerToActual[f.lower()]=f
 
 	for fName in airListFName:
 		FixCapitalizationPerListFile(fName,lowerToActual,False)
+
 	for fName in gndListFName:
 		FixCapitalizationPerListFile(fName,lowerToActual,False)
+
+		try:
+			fp=open(fName,"r")
+		except:
+			print("Cannot open "+fName)
+			continue
+
+		for s in fp:
+			argv=s.split()
+			if 0<len(argv):
+				datFName=os.path.join(instDir,argv[0])
+				datFName=os.path.expanduser(datFName)
+				FixCapitalizationPerDatFile(datFName,lowerToActual,{"CARRIER":0})
+		fp.close()
+
 	for fName in scnListFName:
 		FixCapitalizationPerListFile(fName,lowerToActual,True)
+
 
 
 
@@ -306,7 +365,7 @@ def main():
 		instDir=os.path.join("~","Documents","YSFLIGHT.COM","YSFLIGHT")
 		instDir=os.path.expanduser(instDir)
 	InstallAddOn(sys.argv[1],instDir)
-
+	print("Installation done.")
 
 
 if __name__=="__main__":
