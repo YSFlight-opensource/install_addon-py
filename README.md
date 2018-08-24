@@ -4,7 +4,31 @@ Python script for correctly install 3rd-party add-ons into YSFlight folder.
 
 - http://ysflight.in.coocan.jp/ysflight/ysflight/auto_test_scripts.zip
 
-Please feel free to customize and bundle with your add-on packages. This might be useful.
+> This script covers majority of the add-on packages I downloaded from the web. It assumes that the user data is under `User` or `user` sub-directory somewhere in the .zip file.
+> 
+> Windows doesn't care about capitalization, but Linux and macOS do.
+> 
+> Therefore, this script looks into .lst files and correct capitalization if the file name in the .lst file does not match the capitalization of the actual file.
+> 
+> Now at least I can test that the program does not crash or freeze if I install add-on packages in a batch!
+> 
+> Of course you need to have Python installed on your system to use this script.
+> 
+> This script has been tested with Python 3.6.  It may run with Python 2.x, but I haven't tested.
+> 
+> BSD License.  Free for re-distribution.  Please feel free to customize for your own add-on package and bundle with package.
+> 
+> Usage:
+> 
+> ```
+> $ python install_addon.py package_zip_file.zip
+> ```
+> or
+> ```
+> $ python install_addon.py package_zip_file.zip install_directory
+> ```
+> 
+> If you do not specify the install_directory, the script installs to the default YSFLIGHT user directory (`~/Documents/YSFLIGHT.COM/YSFLIGHT`)
 
 ## CREDITS
 
